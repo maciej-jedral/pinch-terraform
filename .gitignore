@@ -1,0 +1,16 @@
+# Terraform working files
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+
+# Local, account-specific config (copy from the .example files)
+terraform.tfvars
+*.auto.tfvars
+backend.hcl
+.env
+
+# Keep the dependency lock file committed (it pins provider versions):
+!.terraform.lock.hcl

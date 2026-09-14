@@ -1,0 +1,117 @@
+# One small VM with Docker installed, reachable on a fixed public IP.
+#
+# Resources, in dependency order:
+#   data.aws_vpc.default  -> the account's default VPC (Step 2 replaces this with our own)
+#   data.aws_ami.ubuntu   -> latest Ubuntu 24.04 LTS arm64 image, looked up by name
+#   aws_key_pair          -> our SSH public key, registered with EC2
+#   aws_security_group    -> the firewall: 22 (ssh) + 8000 (backend) in, everything out
+#   aws_instance          -> the VM itself, with cloud-init.yaml as user-data
+#   aws_eip (+association)-> a static public IP that survives stop/start of the instance
+
+# ---------------------------------------------------------------------------
+# Lookups (read-only "data sources", nothing is created)
+# ---------------------------------------------------------------------------
+
+data "aws_vpc" "default" {
+  default = true
+}
+
+# Canonical's official Ubuntu AMIs. The name pattern selects 24.04 (noble),
+# arm64, gp3 root disk; most_recent picks the newest build.
+data "aws_ami" "ubuntu" {
+  most_recent = true
+  owners      = ["099720109477"] # Canonical
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-arm64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+}
+
+# ---------------------------------------------------------------------------
+# Resources
+# ---------------------------------------------------------------------------
+
+resource "aws_key_pair" "backend" {
+  key_name   = "${var.project_name}-backend"
+  public_key = var.ssh_public_key
+}
+
+resource "aws_security_group" "backend" {
+  name        = "${var.project_name}-backend"
+  description = "Pinch backend: ssh + http"
+  vpc_id      = data.aws_vpc.default.id
+
+  tags = {
+    Name = "${var.project_name}-backend"
+  }
+}
+
+# Security-group rules as separate resources (AWS provider >= 5 best practice).
+resource "aws_vpc_security_group_ingress_rule" "ssh" {
+  security_group_id = aws_security_group.backend.id
+  description       = "SSH (key auth only)"
+  ip_protocol       = "tcp"
+  from_port         = 22
+  to_port           = 22
+  cidr_ipv4         = "0.0.0.0/0"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "backend_http" {
+  security_group_id = aws_security_group.backend.id
+  description       = "Backend HTTP (FrankenPHP on :8000)"
+  ip_protocol       = "tcp"
+  from_port         = 8000
+  to_port           = 8000
+  cidr_ipv4         = "0.0.0.0/0"
+}
+
+resource "aws_vpc_security_group_egress_rule" "all" {
+  security_group_id = aws_security_group.backend.id
+  description       = "Allow all outbound (apt, Docker Hub, Neon)"
+  ip_protocol       = "-1" # all protocols
+  cidr_ipv4         = "0.0.0.0/0"
+}
+
+resource "aws_instance" "backend" {
+  ami                    = data.aws_ami.ubuntu.id
+  instance_type          = var.instance_type
+  key_name               = aws_key_pair.backend.key_name
+  vpc_security_group_ids = [aws_security_group.backend.id]
+
+  # Runs once on first boot: installs Docker + Compose. See cloud-init.yaml.
+  user_data = file("${path.module}/cloud-init.yaml")
+
+  root_block_device {
+    volume_type = "gp3"
+    volume_size = 8 # GiB
+  }
+
+  # IMDSv2 only - the modern, token-based instance metadata service.
+  metadata_options {
+    http_tokens = "required"
+  }
+
+  tags = {
+    Name = "${var.project_name}-backend"
+  }
+}
+
+# Elastic IP: without it the public IP changes every stop/start.
+resource "aws_eip" "backend" {
+  domain = "vpc"
+
+  tags = {
+    Name = "${var.project_name}-backend"
+  }
+}
+
+resource "aws_eip_association" "backend" {
+  instance_id   = aws_instance.backend.id
+  allocation_id = aws_eip.backend.id
+}
