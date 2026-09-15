@@ -5,7 +5,7 @@
 #   data.aws_ami.ubuntu   -> latest Ubuntu 24.04 LTS arm64 image, looked up by name
 #   aws_key_pair          -> our SSH public key, registered with EC2
 #   aws_security_group    -> the firewall: 22 (ssh) + 8000 (backend) in, everything out
-#   aws_instance          -> the VM itself, with cloud-init.yaml as user-data
+#   aws_instance          -> the VM itself, with cloud-init.yaml.tftpl as user-data
 #   aws_eip (+association)-> a static public IP that survives stop/start of the instance
 
 # ---------------------------------------------------------------------------
@@ -84,8 +84,14 @@ resource "aws_instance" "backend" {
   key_name               = aws_key_pair.backend.key_name
   vpc_security_group_ids = [aws_security_group.backend.id]
 
-  # Runs once on first boot: installs Docker + Compose. See cloud-init.yaml.
-  user_data = file("${path.module}/cloud-init.yaml")
+  # Runs once on first boot: installs Docker + Compose, authorises the deploy key.
+  # See cloud-init.yaml.tftpl. Any change here replaces the instance.
+  user_data = templatefile("${path.module}/cloud-init.yaml.tftpl", {
+    deploy_ssh_public_key = var.deploy_ssh_public_key
+  })
+  # cloud-init only runs on a *new* instance; an in-place user_data update (the
+  # provider default) would stop/start the box and silently change nothing.
+  user_data_replace_on_change = true
 
   root_block_device {
     volume_type = "gp3"

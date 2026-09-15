@@ -8,14 +8,14 @@ Part of the `pinch` meta-repo as the `terraform/` submodule.
 | Resource | Why |
 |---|---|
 | S3 bucket (`bootstrap/`) | Remote, versioned, locked Terraform state |
-| EC2 `t4g.micro`, Ubuntu 24.04 arm64 | The VM that will run the backend container. Docker + Compose installed on first boot via `cloud-init.yaml`. Nothing app-specific yet. |
+| EC2 `t4g.micro`, Ubuntu 24.04 arm64 | The VM that runs the backend container. First boot (`cloud-init.yaml.tftpl`) installs Docker + Compose, authorises the deploy key and creates `/opt/pinch`. The app itself is put there by `pinch-backend`'s GitHub Actions workflow, not by Terraform. |
 | Elastic IP | Fixed public IP, survives stop/start |
 | Security group | Inbound 22 (SSH, key-only) + 8000 (backend HTTP), all outbound |
-| SSH key pair | Your `~/.ssh/pinch-aws.pub` registered with EC2 |
+| SSH key pair | Your `~/.ssh/pinch-aws.pub` registered with EC2; `~/.ssh/pinch-deploy.pub` (the CI deploy key) added via cloud-init |
 | AWS Budgets alert | Email when gross monthly usage passes $15 (actual) / ~$20 (forecast) |
 | Neon project | Free-tier managed Postgres in Frankfurt. Lives outside AWS so the data outlives the Free-plan account. |
 
-Deploying the application, TLS/domain, CI - all later steps; see `ai_artifacts/ALIGNMENT.md` in the meta-repo.
+Application deploy + CI live in `pinch-backend` (GitHub Actions, decided 2026-09-15); TLS/domain is a later step. See `ai_artifacts/ALIGNMENT.md` in the meta-repo.
 
 ## Terraform in 60 seconds
 
@@ -83,6 +83,8 @@ Copy the bucket name into `backend.hcl`. The bootstrap module's own state stays 
 
 The first `apply` also triggers an email from AWS Budgets - confirm the subscription or alerts won't arrive.
 
+**Instance replacement.** `cloud-init.yaml.tftpl` is user-data, which only runs on a brand-new instance, so `ec2.tf` sets `user_data_replace_on_change = true`: any edit to that file (or to `deploy_ssh_public_key`) makes `plan` show `aws_instance.backend must be replaced`. The Elastic IP survives; the app does not - after `apply`, update the `KNOWN_HOSTS` variable in `pinch-backend`'s `production` environment (`ssh-keyscan -t ed25519 <ip>`) and re-run the latest deploy workflow. Always `./tf plan -out=x.tfplan` first and `./tf apply x.tfplan` so you see the replacement coming.
+
 ### Verifying the VM
 
 cloud-init takes 1-3 minutes after the instance is up. Then:
@@ -104,7 +106,7 @@ bootstrap/main.tf          the state bucket (local state, run once)
 providers.tf               Terraform/provider versions, S3 backend, provider config
 variables.tf               inputs (+ terraform.tfvars.example)
 ec2.tf                     VM, key pair, security group, Elastic IP
-cloud-init.yaml            first-boot script: Docker install
+cloud-init.yaml.tftpl      first-boot template: Docker install, deploy key, /opt/pinch
 budget.tf                  AWS Budgets alert
 neon.tf                    Neon Postgres project
 outputs.tf                 what gets printed

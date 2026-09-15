@@ -1,9 +1,10 @@
 # Copy to terraform.tfvars (gitignored) and fill in. Defaults for everything else
 # live in variables.tf - override here only if you want something different.
 
-ssh_public_key = "ssh-ed25519 AAAA... pinch-aws"
-budget_email   = "you@example.com"
-neon_org_id    = "org-xxxx-xxxx-12345678"
+ssh_public_key        = "ssh-ed25519 AAAA... pinch-aws"
+deploy_ssh_public_key = "ssh-ed25519 AAAA... pinch-deploy"
+budget_email          = "you@example.com"
+neon_org_id           = "org-xxxx-xxxx-12345678"
 
 # instance_type    = "t4g.micro"
 # budget_limit_usd = 15

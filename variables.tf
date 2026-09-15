@@ -23,6 +23,11 @@ variable "ssh_public_key" {
   description = "Contents of the SSH public key that may log in as `ubuntu` (e.g. `cat ~/.ssh/pinch-aws.pub`)."
 }
 
+variable "deploy_ssh_public_key" {
+  type        = string
+  description = "Public half of the key pinch-backend's GitHub Actions workflow uses to SSH in as `ubuntu` (e.g. `cat ~/.ssh/pinch-deploy.pub`). Private half lives only in the GitHub `production` environment."
+}
+
 variable "budget_email" {
   type        = string
   description = "Address that receives AWS Budgets alerts. AWS sends a confirmation mail that must be accepted."

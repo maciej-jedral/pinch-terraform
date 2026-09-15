@@ -1,7 +1,16 @@
 #cloud-config
 # First-boot setup for the backend VM (passed as EC2 user-data, runs exactly once).
+# Rendered by templatefile() in ec2.tf, so dollar-brace sequences are Terraform interpolation.
 # Installs Docker Engine + Compose plugin from Docker's official apt repository,
-# following https://docs.docker.com/engine/install/ubuntu/ - nothing app-specific.
+# following https://docs.docker.com/engine/install/ubuntu/, authorises the deploy
+# key and creates the directory the deploy workflow ships the app into.
+#
+# CHANGING THIS FILE REPLACES THE INSTANCE (user-data is immutable) - the app on
+# it is redeployed by re-running the pinch-backend workflow, but plan for it.
+
+# Extra keys for the default user (`ubuntu`), on top of the EC2 key pair.
+ssh_authorized_keys:
+  - ${deploy_ssh_public_key}
 
 package_update: true
 package_upgrade: true
@@ -24,3 +33,5 @@ runcmd:
   # Let the default login user run docker without sudo
   - usermod -aG docker ubuntu
   - systemctl enable --now docker
+  # Where pinch-backend's deploy workflow puts compose.yml + .env
+  - install -d -o ubuntu -g ubuntu -m 0755 /opt/pinch
