@@ -11,8 +11,13 @@ output "backend_ssh" {
 }
 
 output "backend_url" {
-  description = "Where the backend will answer once deployed (plain HTTP for now; TLS + domain is a later step)."
-  value       = "http://${aws_eip.backend.public_ip}:8000"
+  description = "Public HTTPS URL of the backend (Caddy on the box terminates TLS)."
+  value       = "https://api.${var.domain}"
+}
+
+output "frontend_url" {
+  description = "Public URL of the frontend (Vercel, custom domain)."
+  value       = "https://${var.domain}"
 }
 
 output "backend_ami" {
