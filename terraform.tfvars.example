@@ -5,7 +5,11 @@ ssh_public_key        = "ssh-ed25519 AAAA... pinch-aws"
 deploy_ssh_public_key = "ssh-ed25519 AAAA... pinch-deploy"
 budget_email          = "you@example.com"
 neon_org_id           = "org-xxxx-xxxx-12345678"
+# From Vercel -> Project -> Settings -> Domains, after adding the apex + www domains:
+vercel_apex_a         = "76.76.21.21"
+vercel_www_cname      = "cname.vercel-dns.com"
 
 # instance_type    = "t4g.micro"
 # budget_limit_usd = 15
 # neon_pg_version  = 18
+# domain           = "pinchapp.fyi"

@@ -55,3 +55,19 @@ variable "neon_pg_version" {
   description = "Postgres major version for the Neon project. Local dev runs 18."
   default     = 18
 }
+
+variable "domain" {
+  type        = string
+  description = "Registered domain (at Porkbun) whose DNS records this module manages. Apex + www go to Vercel, `api.` to the EC2 box."
+  default     = "pinchapp.fyi"
+}
+
+variable "vercel_apex_a" {
+  type        = string
+  description = "IPv4 that Vercel shows for the apex domain under Project -> Settings -> Domains (an A record)."
+}
+
+variable "vercel_www_cname" {
+  type        = string
+  description = "CNAME target that Vercel shows for the www subdomain (e.g. cname.vercel-dns.com)."
+}

@@ -10,7 +10,8 @@
 # What gets mounted / passed in:
 #   - this directory      -> /work   (the Terraform code, .terraform/, lock file)
 #   - ~/.aws (read-only)  -> /root/.aws  (AWS credentials + config; the container runs as root)
-#   - NEON_API_KEY        -> from your shell or from ./.env (gitignored)
+#   - NEON_API_KEY, PORKBUN_API_KEY, PORKBUN_SECRET_KEY
+#                         -> from your shell or from ./.env (gitignored)
 #   - AWS_PROFILE/REGION  -> passed through if set
 set -euo pipefail
 
@@ -46,5 +47,7 @@ exec docker run --rm "${tty_flags[@]}" \
   -e AWS_PROFILE \
   -e AWS_REGION \
   -e NEON_API_KEY \
+  -e PORKBUN_API_KEY \
+  -e PORKBUN_SECRET_KEY \
   -e TF_LOG \
   "hashicorp/terraform:${TF_VERSION}" "${args[@]}"

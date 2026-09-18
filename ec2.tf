@@ -4,7 +4,7 @@
 #   data.aws_vpc.default  -> the account's default VPC (Step 2 replaces this with our own)
 #   data.aws_ami.ubuntu   -> latest Ubuntu 24.04 LTS arm64 image, looked up by name
 #   aws_key_pair          -> our SSH public key, registered with EC2
-#   aws_security_group    -> the firewall: 22 (ssh) + 8000 (backend) in, everything out
+#   aws_security_group    -> the firewall: 22 (ssh) + 80/443 (Caddy: ACME + HTTPS) in, everything out
 #   aws_instance          -> the VM itself, with cloud-init.yaml.tftpl as user-data
 #   aws_eip (+association)-> a static public IP that survives stop/start of the instance
 
@@ -62,12 +62,24 @@ resource "aws_vpc_security_group_ingress_rule" "ssh" {
   cidr_ipv4         = "0.0.0.0/0"
 }
 
+# 80 is needed for Let's Encrypt's HTTP-01 challenge and for Caddy's automatic
+# redirect to https; 443 is the API. Port 8000 stays inside the container
+# (healthcheck only) and is not published - see pinch-backend/compose.prod.yml.
 resource "aws_vpc_security_group_ingress_rule" "backend_http" {
   security_group_id = aws_security_group.backend.id
-  description       = "Backend HTTP (FrankenPHP on :8000)"
+  description       = "HTTP (ACME challenge + redirect to https)"
   ip_protocol       = "tcp"
-  from_port         = 8000
-  to_port           = 8000
+  from_port         = 80
+  to_port           = 80
+  cidr_ipv4         = "0.0.0.0/0"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "backend_https" {
+  security_group_id = aws_security_group.backend.id
+  description       = "HTTPS (FrankenPHP/Caddy, auto TLS)"
+  ip_protocol       = "tcp"
+  from_port         = 443
+  to_port           = 443
   cidr_ipv4         = "0.0.0.0/0"
 }
 

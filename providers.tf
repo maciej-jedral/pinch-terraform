@@ -13,6 +13,12 @@ terraform {
       source  = "kislerdm/neon"
       version = "~> 0.18"
     }
+    # Community provider for the Porkbun registrar/DNS API (actively maintained;
+    # the more-downloaded cullenmcdermott/porkbun is archived).
+    porkbun = {
+      source  = "jianyuan/porkbun"
+      version = "~> 0.3"
+    }
   }
 
   # Remote state in S3 (created by ./bootstrap). The bucket name is supplied at
@@ -40,3 +46,6 @@ provider "aws" {
 
 # Authenticates via the NEON_API_KEY environment variable (see .env.example).
 provider "neon" {}
+
+# Authenticates via PORKBUN_API_KEY + PORKBUN_SECRET_KEY (see .env.example).
+provider "porkbun" {}
