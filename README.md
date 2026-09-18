@@ -16,7 +16,7 @@ Part of the `pinch` meta-repo as the `terraform/` submodule.
 | Neon project | Free-tier managed Postgres in Frankfurt. Lives outside AWS so the data outlives the Free-plan account. |
 | Porkbun DNS records | `pinchapp.fyi` + `www` → Vercel, `api.pinchapp.fyi` → the Elastic IP. The domain is registered at Porkbun (outside AWS, same reasoning as Neon); TLS is done by Caddy on the box, not here. |
 
-Application deploy + CI live in `pinch-backend` (GitHub Actions, decided 2026-09-15); TLS is terminated by the backend container itself (decided 2026-09-18). See `ai_artifacts/ALIGNMENT.md` in the meta-repo.
+Application deploy + CI live in `pinch-backend` (GitHub Actions, decided 2026-09-15); TLS is terminated by the backend container itself. Decision log: `AGENTS.md` in the meta-repo.
 
 ## Terraform in 60 seconds
 
